@@ -2,6 +2,8 @@ TARGET = ../bin
 
 TESTS=$(wildcard test_*.c)
 FUZZERS=$(wildcard fuzz_*.c)
+LUA_TESTS=$(wildcard test_*.lua)
+RUNNER=$(TARGET)/logd_test
 TARGET_TESTS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(TESTS)))
 TARGET_FUZZERS = $(addprefix $(TARGET)/,$(patsubst %.c,%,$(FUZZERS)))
 TARGET_TPROFILES = $(addprefix $(TARGET)/,$(patsubst %.c,%.profraw,$(TESTS)))
@@ -18,8 +20,16 @@ FUZZPROFDATA=$(TARGET)/fuzz.profdata
 
 .PHONY: clean test fuzz coverage full-coverage fuzz-coverage purge
 
-test: $(TARGET_TESTS)
+test: lua_test c_test
+
+c_test: $(TARGET_TESTS)
 	@ for f in $^; do LLVM_PROFILE_FILE="$$f.profraw" ./$$f; done
+
+lua_test: $(LUA_TESTS) $(RUNNER)
+	@ for f in $^; do ./$(RUNNER) $$f; done
+
+$(RUNNER): runner.c $(LIB)
+	$(CC) $(CFLAGS) -I./ runner.c -o $(RUNNER) $(LIB)
 
 $(TARGET)/test_%: test_%.c $(LIB)
 	$(CC) $(CFLAGS) -I./ $(addprefix ../src/,$(patsubst test_%.c, %.c, $<)) $< -o $@ $(LIB)

@@ -102,7 +102,6 @@ int args_init(int argc, char* argv[], char** script)
 	}
 
 	*script = argv[optind];
-	// TODO check that optind is valid
 
 	return 0;
 }

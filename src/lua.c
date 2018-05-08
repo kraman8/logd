@@ -11,11 +11,11 @@
 #include "lua/lua.h"
 #include "lua/lualib.h"
 
-#define LUA_NAME_ON_MESSAGE "on_log"
+#define LUA_NAME_ON_LOG "on_log"
 #define LUA_NAME_LOGD_MODULE "logd"
 
 static const struct luaL_Reg logd_functions[] = {
-  {LUA_NAME_ON_MESSAGE, NULL}, {NULL, NULL}};
+  {LUA_NAME_ON_LOG, NULL}, {NULL, NULL}};
 
 static void lua_load_logd_lib(lua_t* l)
 {
@@ -111,7 +111,7 @@ exit:
 static void lua_push_on_log(lua_t* l)
 {
 	lua_getglobal(l->state, LUA_NAME_LOGD_MODULE);
-	lua_getfield(l->state, -1, LUA_NAME_ON_MESSAGE);
+	lua_getfield(l->state, -1, LUA_NAME_ON_LOG);
 }
 
 lua_t* lua_create(const char* script)
@@ -159,7 +159,7 @@ int lua_init(lua_t* l, const char* script)
 	lua_push_on_log(l);
 	if (!lua_isfunction(l->state, -1)) {
 		fprintf(stderr,
-		  "Couldn not find '" LUA_NAME_LOGD_MODULE "." LUA_NAME_ON_MESSAGE
+		  "Couldn not find '" LUA_NAME_LOGD_MODULE "." LUA_NAME_ON_LOG
 		  "' function in loaded script\n");
 		errno = EINVAL;
 		goto error;
@@ -223,8 +223,6 @@ void lua_call_on_log(lua_t* l, log_t* log)
 	lua_call(l->state, 1, 0);
 	lua_pop(l->state, 1); // logd module
 }
-
-// int lua_protected_on_log(lua_t* l, log_t* log)
 
 void lua_free(lua_t* l)
 {
