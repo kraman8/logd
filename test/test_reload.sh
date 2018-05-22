@@ -8,9 +8,9 @@ PID=
 
 function finish {
 	CODE=$?
-	rm -f $script
-	rm -f $out
-	rm -f $pipe
+	#rm -f $script
+	#rm -f $out
+	#rm -f $pipe
 	kill $PID
 	exit $CODE;
 }

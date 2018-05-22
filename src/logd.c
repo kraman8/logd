@@ -22,6 +22,7 @@ static struct args_s {
 static char* script;
 static parser_t* p;
 static lua_t* lstate;
+static uv_signal_t sigh;
 static uv_loop_t* loop;
 static buf_t* b;
 static uv_file infd;
@@ -43,6 +44,7 @@ void release_all()
 	input_close(loop, infd);
 	lua_free(lstate);
 	if (loop) {
+		uv_signal_stop(&sigh);
 		uv_stop(loop);
 		free(loop);
 	}
@@ -106,7 +108,9 @@ void on_read(uv_fs_t* req)
 		release_all();
 		exit(1);
 	} else {
-		lua_call_on_eof(lstate);
+		DEBUG_LOG("EOF detected on %d %ld", infd, req->result);
+		if (lua_on_eof_defined(lstate))
+			lua_call_on_eof(lstate);
 		release_all();
 		exit(0);
 	}
@@ -114,6 +118,8 @@ void on_read(uv_fs_t* req)
 
 void sigusr1_signal_handler(uv_signal_t *handle, int signum)
 {
+	DEBUG_LOG("received signal %d", signum);
+
 	lua_free(lstate);
 	if ((lstate = lua_create(loop, script)) == NULL) {
 		perror("lua_create");
@@ -125,7 +131,6 @@ void sigusr1_signal_handler(uv_signal_t *handle, int signum)
 int signals_init(uv_loop_t* loop)
 {
 	int ret;
-    static uv_signal_t sigh;
 
     if ((ret = uv_signal_init(loop, &sigh)) < 0)
 		goto error;
@@ -133,6 +138,7 @@ int signals_init(uv_loop_t* loop)
     if ((ret = uv_signal_start(&sigh, sigusr1_signal_handler, SIGUSR1)) < 0)
 		goto error;
 
+	DEBUG_LOG("initialized SIGUSR1 signal handler %p", &sigh);
 	return 0;
 error:
 	fprintf(stderr, "uv_signal_init: %s: %s\n", uv_err_name(ret), uv_strerror(ret));
@@ -154,6 +160,8 @@ int input_init(uv_loop_t* loop, const char* input_file)
 	iov.base = b->next_write;
 	iov.len = buf_writable(b);
 	uv_fs_read(loop, &uv_read_in_req, infd, &iov, 1, -1, on_read);
+
+	DEBUG_LOG("input file initalized %d", infd);
 
 	return 0;
 }
